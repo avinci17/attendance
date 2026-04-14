@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OJT Attendance Tracker</title>
+  <link rel="icon" type="image/png" href="images/icon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <div id="toast" class="toast" style="display:none;"></div>
+
+  <!-- Modal -->
+  <div id="modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box fade-in">
+      <div class="modal-handle"></div>
+      <h2 id="modal-title" style="font-size:18px;font-weight:600;margin-bottom:20px;color:#f5ebe1;">Add Attendance</h2>
+      <input type="hidden" id="edit-id" />
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label class="field-label">Date</label>
+          <input type="date" id="f-date" class="field-input" onchange="previewHours()" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label class="field-label">Time In</label>
+            <input type="time" id="f-time-in" class="field-input" onchange="previewHours()" />
+          </div>
+          <div>
+            <label class="field-label">Time Out</label>
+            <input type="time" id="f-time-out" class="field-input" onchange="previewHours()" />
+          </div>
+        </div>
+        <div id="computed-preview"
+          style="display:none;background:rgba(122,158,138,0.15);border:1.5px solid rgba(122,158,138,0.4);border-radius:8px;padding:9px 14px;font-size:13px;color:#7a9e8a;font-weight:500;">
+        </div>
+        <div>
+          <label class="field-label">Notes <span
+              style="color:rgba(196,160,144,0.5);font-weight:400;">(optional)</span></label>
+          <input type="text" id="f-notes" class="field-input" placeholder="e.g. Half day, Holiday makeup..." />
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button class="btn-primary" style="flex:1;padding:13px;" onclick="saveRecord()">Save</button>
+        <button class="btn-outline" style="padding:13px 20px;" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div class="app-wrap safe-bottom">
+
+    <!-- Header -->
+    <div style="margin-bottom:24px;">
+      <h1
+        style="font-size:24px;font-weight:600;color:#f5ebe1;letter-spacing:-.4px;text-shadow:0 2px 8px rgba(0,0,0,.5);">
+        OJT Attendance</h1>
+      <p id="date-display" style="font-size:13px;color:#c4a090;margin-top:2px;"></p>
+      <div id="estimation-block" style="margin-top:10px;display:none;">
+        <p
+          style="font-size:11px;font-weight:600;color:rgba(196,160,144,0.6);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">
+          Estimation</p>
+        <p id="est-300" style="font-size:13px;color:#c4a090;margin:2px 0;"></p>
+        <p id="est-500" style="font-size:13px;color:#c4a090;margin:2px 0;"></p>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+
+      <!-- Wide hero card -->
+      <div class="glass-dark" style="grid-column:span 2;padding:18px 20px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+          <div>
+            <p
+              style="font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.6px;">
+              Total Hours</p>
+            <p id="s-total" style="font-size:34px;font-weight:600;margin-top:4px;color:#f5ebe1;" class="mono">—</p>
+          </div>
+          <div style="text-align:right;">
+            <p
+              style="font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.6px;">
+              Progress</p>
+            <p id="s-percent" style="font-size:34px;font-weight:600;margin-top:4px;color:var(--sage);" class="mono">—
+            </p>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.1);border-radius:99px;height:6px;margin-top:14px;overflow:hidden;">
+          <div id="progress-bar" class="progress-bar"
+            style="height:100%;background:linear-gradient(90deg,var(--rose),var(--peach));border-radius:99px;width:0%;">
+          </div>
+        </div>
+        <span id="pb-label" style="font-size:11px;color:rgba(196,160,144,0.45);margin-top:5px;display:block;"
+          class="mono">0 / 500 hrs</span>
+      </div>
+
+      <div class="glass-dark" style="padding:16px;">
+        <p
+          style="font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.6px;">
+          Days</p>
+        <p id="s-days" style="font-size:28px;font-weight:600;color:#f5ebe1;margin-top:4px;" class="mono">—</p>
+      </div>
+      <div class="glass-dark" style="padding:16px;">
+        <p
+          style="font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.6px;">
+          Remaining</p>
+        <p id="s-remaining" style="font-size:28px;font-weight:600;color:#f5ebe1;margin-top:4px;" class="mono">—</p>
+      </div>
+    </div>
+
+    <!-- Records Section -->
+    <div class="glass-dark" style="overflow:hidden;">
+      <div
+        style="padding:14px 16px;border-bottom:1px solid rgba(196,122,122,0.15);display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <p style="font-size:14px;font-weight:600;color:#f5ebe1;">Attendance Records</p>
+        <button class="btn-primary" style="padding:9px 16px;font-size:13px;" onclick="openAddModal()">+ Add
+          Record</button>
+      </div>
+
+      <!-- Mobile Cards -->
+      <div class="mobile-cards" style="padding:12px;" id="mobile-records-body">
+        <p style="text-align:center;padding:24px;color:rgba(196,160,144,0.5);font-size:14px;">No records yet.</p>
+      </div>
+
+      <!-- Desktop Table -->
+      <div class="desktop-table table-scroll">
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <thead>
+            <tr style="border-bottom:1px solid rgba(196,122,122,0.15);">
+              <th
+                style="text-align:left;padding:11px 20px;font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:rgba(0,0,0,.15);">
+                Date</th>
+              <th
+                style="text-align:left;padding:11px 12px;font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:rgba(0,0,0,.15);">
+                Day</th>
+              <th
+                style="text-align:left;padding:11px 12px;font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:rgba(0,0,0,.15);">
+                Time In</th>
+              <th
+                style="text-align:left;padding:11px 12px;font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:rgba(0,0,0,.15);">
+                Time Out</th>
+              <th
+                style="text-align:left;padding:11px 12px;font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:rgba(0,0,0,.15);">
+                Hours</th>
+              <th
+                style="text-align:left;padding:11px 12px;font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:rgba(0,0,0,.15);">
+                Notes</th>
+              <th
+                style="text-align:left;padding:11px 12px;font-size:11px;color:rgba(196,160,144,0.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:rgba(0,0,0,.15);">
+                Actions</th>
+            </tr>
+          </thead>
+          <tbody id="records-body">
+            <tr>
+              <td colspan="7" style="text-align:center;padding:36px;color:rgba(196,160,144,0.4);">No records yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+
+</body>
+
+</html>
