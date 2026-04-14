@@ -1,3 +1,74 @@
+// ── PASSWORD PROTECTION ───────────────────────────────────
+const CORRECT_PASSWORD = 'soxandtux@17';
+const SESSION_DURATION = 60 * 60 * 1000; // 1 hour in ms
+
+function isAuthenticated() {
+  const expiry = sessionStorage.getItem('auth_expiry');
+  if (!expiry) return false;
+  if (Date.now() > parseInt(expiry)) {
+    sessionStorage.removeItem('auth_expiry');
+    return false;
+  }
+  return true;
+}
+
+function authenticate() {
+  sessionStorage.setItem('auth_expiry', Date.now() + SESSION_DURATION);
+}
+
+function showPasswordModal() {
+  const overlay = document.createElement('div');
+  overlay.id = 'auth-overlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(10,5,2,0.85);
+    display:flex;align-items:center;justify-content:center;
+    z-index:999;backdrop-filter:blur(6px);
+  `;
+  overlay.innerHTML = `
+    <div style="background:#2a1a12;border:1px solid rgba(196,122,122,0.35);border-radius:18px;
+      padding:32px 28px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+      <h2 style="font-size:20px;font-weight:600;color:#f5ebe1;margin-bottom:6px;text-align:center;">OJT Attendance</h2>
+      <p style="font-size:13px;color:rgba(196,160,144,0.6);text-align:center;margin-bottom:24px;">Enter password to continue</p>
+      <input type="password" id="auth-input" placeholder="Password"
+        style="width:100%;padding:11px 14px;border:1.5px solid rgba(196,122,122,0.35);border-radius:8px;
+        font-size:15px;background:rgba(255,255,255,0.07);color:#f5ebe1;font-family:'DM Sans',sans-serif;
+        outline:none;box-sizing:border-box;margin-bottom:10px;" />
+      <p id="auth-error" style="color:#c47a7a;font-size:13px;margin-bottom:10px;display:none;">Incorrect password.</p>
+      <button id="auth-btn"
+        style="width:100%;padding:13px;background:#c47a7a;color:#fff;border:none;border-radius:10px;
+        font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">
+        Unlock
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const input = document.getElementById('auth-input');
+  const btn = document.getElementById('auth-btn');
+  const error = document.getElementById('auth-error');
+
+  function tryLogin() {
+    if (input.value === CORRECT_PASSWORD) {
+      authenticate();
+      overlay.remove();
+      refresh();
+    } else {
+      error.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  btn.addEventListener('click', tryLogin);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+  setTimeout(() => input.focus(), 100);
+}
+
+if (!isAuthenticated()) {
+  showPasswordModal();
+}
+// ─────────────────────────────────────────────────────────
+
 const SUPABASE_URL = 'https://tmbgwgkwsccwbffcqrty.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtYmd3Z2t3c2Njd2JmZmNxcnR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMjgwMTcsImV4cCI6MjA5MTcwNDAxN30.2doKUlYFOmHGSggF3DG-o7YRJXBX6wvgKykCck3B2as';
 const HEADERS = {
