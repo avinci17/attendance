@@ -7,8 +7,8 @@ const HEADERS = {
 };
 const TABLE = `${SUPABASE_URL}/rest/v1/attendance`;
 const OJT_REQUIRED_HOURS = 500;
-const CORRECT_PASSWORD = 'soxandtux@17';
-const SESSION_DURATION = 60 * 60 * 1000; // 1 hour
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function isAuthenticated() {
   const expiry = sessionStorage.getItem('auth_expiry');
@@ -20,9 +20,11 @@ function isAuthenticated() {
   return true;
 }
 
-function requireAuth(callback) {
-  if (isAuthenticated()) { callback(); return; }
+async function requireAuth(callback) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { callback(); return; }
 
+  // Show login overlay
   const overlay = document.createElement('div');
   overlay.id = 'auth-overlay';
   overlay.style.cssText = `
@@ -34,17 +36,21 @@ function requireAuth(callback) {
     <div style="background:#2a1a12;border:1px solid rgba(196,122,122,0.35);border-radius:18px;
       padding:32px 28px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
       <h2 style="font-size:20px;font-weight:600;color:#f5ebe1;margin-bottom:6px;text-align:center;">Authentication Required</h2>
-      <p style="font-size:13px;color:rgba(196,160,144,0.6);text-align:center;margin-bottom:24px;">Enter password to make changes</p>
-      <input type="password" id="auth-input" placeholder="Password"
+      <p style="font-size:13px;color:rgba(196,160,144,0.6);text-align:center;margin-bottom:24px;">Sign in to make changes</p>
+      <input type="email" id="auth-email" placeholder="Email"
         style="width:100%;padding:11px 14px;border:1.5px solid rgba(196,122,122,0.35);border-radius:8px;
         font-size:15px;background:rgba(255,255,255,0.07);color:#f5ebe1;font-family:'DM Sans',sans-serif;
         outline:none;box-sizing:border-box;margin-bottom:10px;" />
-      <p id="auth-error" style="color:#c47a7a;font-size:13px;margin-bottom:10px;display:none;">Incorrect password.</p>
+      <input type="password" id="auth-password" placeholder="Password"
+        style="width:100%;padding:11px 14px;border:1.5px solid rgba(196,122,122,0.35);border-radius:8px;
+        font-size:15px;background:rgba(255,255,255,0.07);color:#f5ebe1;font-family:'DM Sans',sans-serif;
+        outline:none;box-sizing:border-box;margin-bottom:10px;" />
+      <p id="auth-error" style="color:#c47a7a;font-size:13px;margin-bottom:10px;display:none;">Incorrect email or password.</p>
       <div style="display:flex;gap:10px;">
         <button id="auth-btn"
           style="flex:1;padding:13px;background:#c47a7a;color:#fff;border:none;border-radius:10px;
           font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">
-          Unlock
+          Sign In
         </button>
         <button id="auth-cancel"
           style="padding:13px 18px;background:transparent;color:#c47a7a;border:1.5px solid #c47a7a;border-radius:10px;
@@ -56,28 +62,34 @@ function requireAuth(callback) {
   `;
   document.body.appendChild(overlay);
 
-  const input = document.getElementById('auth-input');
+  const emailInput = document.getElementById('auth-email');
+  const passInput = document.getElementById('auth-password');
   const btn = document.getElementById('auth-btn');
   const cancelBtn = document.getElementById('auth-cancel');
   const error = document.getElementById('auth-error');
 
-  function tryLogin() {
-    if (input.value === CORRECT_PASSWORD) {
-      sessionStorage.setItem('auth_expiry', Date.now() + SESSION_DURATION);
+  async function tryLogin() {
+    btn.textContent = 'Signing in...';
+    btn.disabled = true;
+    const { error: err } = await sb.auth.signInWithPassword({
+      email: emailInput.value,
+      password: passInput.value
+    });
+    if (err) {
+      error.style.display = 'block';
+      passInput.value = '';
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+    } else {
       overlay.remove();
       callback();
-    } else {
-      error.style.display = 'block';
-      input.value = '';
-      input.focus();
     }
   }
 
   btn.addEventListener('click', tryLogin);
   cancelBtn.addEventListener('click', () => overlay.remove());
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
-  setTimeout(() => input.focus(), 100);
+  passInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+  setTimeout(() => emailInput.focus(), 100);
 }
 
 document.getElementById('date-display').textContent =
