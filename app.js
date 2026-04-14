@@ -1,4 +1,12 @@
-const API = 'https://OJT-Attendance.fwh.is/api.php';
+const SUPABASE_URL = 'https://tmbgwgkwsccwbffcqrty.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtYmd3Z2t3c2Njd2JmZmNxcnR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMjgwMTcsImV4cCI6MjA5MTcwNDAxN30.2doKUlYFOmHGSggF3DG-o7YRJXBX6wvgKykCck3B2as';
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`
+};
+const TABLE = `${SUPABASE_URL}/rest/v1/attendance`;
+const OJT_REQUIRED_HOURS = 500;
 
 document.getElementById('date-display').textContent =
   new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -47,6 +55,11 @@ function calcHours(timeIn, timeOut) {
   return diff > 0 ? diff / 60 : null;
 }
 
+function computeHours(row) {
+  if (row.manual_hours !== null && row.manual_hours !== undefined) return parseFloat(row.manual_hours);
+  return calcHours(row.time_in, row.time_out);
+}
+
 function previewHours() {
   const tin = document.getElementById('f-time-in').value;
   const tout = document.getElementById('f-time-out').value;
@@ -61,21 +74,30 @@ function previewHours() {
 }
 
 async function loadSummary() {
-  const r = await fetch(`${API}?action=summary`);
-  const d = await r.json();
+  const r = await fetch(`${TABLE}?select=time_in,time_out,manual_hours&order=date.desc`, { headers: HEADERS });
+  const records = await r.json();
 
-  document.getElementById('s-total').textContent = fmtHours(d.total_hours);
-  document.getElementById('s-days').textContent = d.days_attended;
-  document.getElementById('s-remaining').textContent = fmtHours(d.remaining);
-  document.getElementById('s-percent').textContent = d.percent + '%';
-  document.getElementById('progress-bar').style.width = d.percent + '%';
-  document.getElementById('pb-label').textContent = `${d.total_hours} / ${d.required_hours} hrs`;
+  let total = 0, days = 0;
+  for (const row of records) {
+    const h = computeHours(row);
+    if (h !== null) { total += h; days++; }
+  }
+
+  const percent = total > 0 ? Math.min(100, round1(total / OJT_REQUIRED_HOURS * 100)) : 0;
+  const remaining = Math.max(0, OJT_REQUIRED_HOURS - total);
+
+  document.getElementById('s-total').textContent = fmtHours(total);
+  document.getElementById('s-days').textContent = days;
+  document.getElementById('s-remaining').textContent = fmtHours(remaining);
+  document.getElementById('s-percent').textContent = percent + '%';
+  document.getElementById('progress-bar').style.width = percent + '%';
+  document.getElementById('pb-label').textContent = `${round2(total)} / ${OJT_REQUIRED_HOURS} hrs`;
 
   const HOURS_PER_DAY = 9;
   const today = new Date();
 
   function estimateDate(targetHours) {
-    const hoursLeft = Math.max(0, targetHours - d.total_hours);
+    const hoursLeft = Math.max(0, targetHours - total);
     if (hoursLeft === 0) return 'Completed ✓';
     const daysLeft = Math.ceil(hoursLeft / HOURS_PER_DAY);
     let count = 0, date = new Date(today);
@@ -93,20 +115,24 @@ async function loadSummary() {
   document.getElementById('estimation-block').style.display = 'block';
 }
 
+function round1(n) { return Math.round(n * 10) / 10; }
+function round2(n) { return Math.round(n * 100) / 100; }
+
 async function loadRecords() {
-  const r = await fetch(`${API}?action=list`);
-  const d = await r.json();
+  const r = await fetch(`${TABLE}?select=*&order=date.desc`, { headers: HEADERS });
+  const records = await r.json();
+
   const tbody = document.getElementById('records-body');
   const mcards = document.getElementById('mobile-records-body');
 
-  if (!d.records || !d.records.length) {
+  if (!records || !records.length) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:36px;color:rgba(196,160,144,0.4);">No records yet. Click "+ Add Record" to get started.</td></tr>`;
     mcards.innerHTML = `<p style="text-align:center;padding:24px;color:rgba(196,160,144,0.4);font-size:14px;">No records yet. Tap "+ Add Record" to get started.</p>`;
     return;
   }
 
-  tbody.innerHTML = d.records.map(row => {
-    const h = row.manual_hours !== null ? row.manual_hours : row.computed_hours;
+  tbody.innerHTML = records.map(row => {
+    const h = computeHours(row);
     return `<tr class="record-row">
       <td style="padding:12px 20px;font-weight:500;color:#f5ebe1;">${fmtDate(row.date)}</td>
       <td style="padding:12px 12px;">${dayBadge(row.date)}</td>
@@ -125,8 +151,8 @@ async function loadRecords() {
     </tr>`;
   }).join('');
 
-  mcards.innerHTML = d.records.map(row => {
-    const h = row.manual_hours !== null ? row.manual_hours : row.computed_hours;
+  mcards.innerHTML = records.map(row => {
+    const h = computeHours(row);
     return `<div class="record-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
         <div>
@@ -199,23 +225,30 @@ async function saveRecord() {
   const hours = calcHours(time_in, time_out);
   if (hours === null || hours <= 0) { showToast('Time Out must be after Time In.', 'error'); return; }
 
+  const payload = { date, time_in: time_in + ':00', time_out: time_out + ':00', notes: notes || null, manual_hours: null };
+
   let r;
   if (id) {
-    r = await fetch(`${API}?action=update&id=${id}&_method=PUT`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date, notes, time_in, time_out })
+    r = await fetch(`${TABLE}?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
     });
   } else {
-    r = await fetch(`${API}?action=add_manual`, {
+    r = await fetch(TABLE, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date, notes, time_in, time_out })
+      headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
     });
   }
 
-  const d = await r.json();
-  if (d.error) { showToast(d.error, 'error'); return; }
+  if (!r.ok) {
+    const err = await r.json();
+    const msg = err.message || err.details || 'Failed to save.';
+    showToast(msg.includes('unique') ? 'A record for this date already exists.' : msg, 'error');
+    return;
+  }
+
   closeModal();
   showToast(id ? 'Record updated!' : 'Record added!');
   refresh();
@@ -223,9 +256,11 @@ async function saveRecord() {
 
 async function deleteRecord(id) {
   if (!confirm('Delete this record?')) return;
-  const r = await fetch(`${API}?action=delete&id=${id}&_method=DELETE`, { method: 'POST' });
-  const d = await r.json();
-  if (d.error) { showToast(d.error, 'error'); return; }
+  const r = await fetch(`${TABLE}?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { ...HEADERS, 'Prefer': 'return=minimal' }
+  });
+  if (!r.ok) { showToast('Failed to delete.', 'error'); return; }
   showToast('Record deleted.', 'info');
   refresh();
 }
