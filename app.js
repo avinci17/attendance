@@ -1,6 +1,14 @@
-// ── PASSWORD PROTECTION ───────────────────────────────────
+const SUPABASE_URL = 'https://tmbgwgkwsccwbffcqrty.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtYmd3Z2t3c2Njd2JmZmNxcnR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMjgwMTcsImV4cCI6MjA5MTcwNDAxN30.2doKUlYFOmHGSggF3DG-o7YRJXBX6wvgKykCck3B2as';
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`
+};
+const TABLE = `${SUPABASE_URL}/rest/v1/attendance`;
+const OJT_REQUIRED_HOURS = 500;
 const CORRECT_PASSWORD = 'soxandtux@17';
-const SESSION_DURATION = 60 * 60 * 1000; // 1 hour in ms
+const SESSION_DURATION = 60 * 60 * 1000; // 1 hour
 
 function isAuthenticated() {
   const expiry = sessionStorage.getItem('auth_expiry');
@@ -12,11 +20,9 @@ function isAuthenticated() {
   return true;
 }
 
-function authenticate() {
-  sessionStorage.setItem('auth_expiry', Date.now() + SESSION_DURATION);
-}
+function requireAuth(callback) {
+  if (isAuthenticated()) { callback(); return; }
 
-function showPasswordModal() {
   const overlay = document.createElement('div');
   overlay.id = 'auth-overlay';
   overlay.style.cssText = `
@@ -27,31 +33,39 @@ function showPasswordModal() {
   overlay.innerHTML = `
     <div style="background:#2a1a12;border:1px solid rgba(196,122,122,0.35);border-radius:18px;
       padding:32px 28px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
-      <h2 style="font-size:20px;font-weight:600;color:#f5ebe1;margin-bottom:6px;text-align:center;">OJT Attendance</h2>
-      <p style="font-size:13px;color:rgba(196,160,144,0.6);text-align:center;margin-bottom:24px;">Enter password to continue</p>
+      <h2 style="font-size:20px;font-weight:600;color:#f5ebe1;margin-bottom:6px;text-align:center;">Authentication Required</h2>
+      <p style="font-size:13px;color:rgba(196,160,144,0.6);text-align:center;margin-bottom:24px;">Enter password to make changes</p>
       <input type="password" id="auth-input" placeholder="Password"
         style="width:100%;padding:11px 14px;border:1.5px solid rgba(196,122,122,0.35);border-radius:8px;
         font-size:15px;background:rgba(255,255,255,0.07);color:#f5ebe1;font-family:'DM Sans',sans-serif;
         outline:none;box-sizing:border-box;margin-bottom:10px;" />
       <p id="auth-error" style="color:#c47a7a;font-size:13px;margin-bottom:10px;display:none;">Incorrect password.</p>
-      <button id="auth-btn"
-        style="width:100%;padding:13px;background:#c47a7a;color:#fff;border:none;border-radius:10px;
-        font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">
-        Unlock
-      </button>
+      <div style="display:flex;gap:10px;">
+        <button id="auth-btn"
+          style="flex:1;padding:13px;background:#c47a7a;color:#fff;border:none;border-radius:10px;
+          font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">
+          Unlock
+        </button>
+        <button id="auth-cancel"
+          style="padding:13px 18px;background:transparent;color:#c47a7a;border:1.5px solid #c47a7a;border-radius:10px;
+          font-size:15px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;">
+          Cancel
+        </button>
+      </div>
     </div>
   `;
   document.body.appendChild(overlay);
 
   const input = document.getElementById('auth-input');
   const btn = document.getElementById('auth-btn');
+  const cancelBtn = document.getElementById('auth-cancel');
   const error = document.getElementById('auth-error');
 
   function tryLogin() {
     if (input.value === CORRECT_PASSWORD) {
-      authenticate();
+      sessionStorage.setItem('auth_expiry', Date.now() + SESSION_DURATION);
       overlay.remove();
-      refresh();
+      callback();
     } else {
       error.style.display = 'block';
       input.value = '';
@@ -60,24 +74,11 @@ function showPasswordModal() {
   }
 
   btn.addEventListener('click', tryLogin);
+  cancelBtn.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   input.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
   setTimeout(() => input.focus(), 100);
 }
-
-if (!isAuthenticated()) {
-  showPasswordModal();
-}
-// ─────────────────────────────────────────────────────────
-
-const SUPABASE_URL = 'https://tmbgwgkwsccwbffcqrty.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtYmd3Z2t3c2Njd2JmZmNxcnR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMjgwMTcsImV4cCI6MjA5MTcwNDAxN30.2doKUlYFOmHGSggF3DG-o7YRJXBX6wvgKykCck3B2as';
-const HEADERS = {
-  'Content-Type': 'application/json',
-  'apikey': SUPABASE_KEY,
-  'Authorization': `Bearer ${SUPABASE_KEY}`
-};
-const TABLE = `${SUPABASE_URL}/rest/v1/attendance`;
-const OJT_REQUIRED_HOURS = 500;
 
 document.getElementById('date-display').textContent =
   new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -257,25 +258,29 @@ async function loadRecords() {
 }
 
 function openAddModal() {
-  document.getElementById('modal-title').textContent = 'Add Attendance';
-  document.getElementById('edit-id').value = '';
-  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('f-time-in').value = '';
-  document.getElementById('f-time-out').value = '';
-  document.getElementById('f-notes').value = '';
-  document.getElementById('computed-preview').style.display = 'none';
-  document.getElementById('modal').style.display = 'flex';
+  requireAuth(() => {
+    document.getElementById('modal-title').textContent = 'Add Attendance';
+    document.getElementById('edit-id').value = '';
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('f-time-in').value = '';
+    document.getElementById('f-time-out').value = '';
+    document.getElementById('f-notes').value = '';
+    document.getElementById('computed-preview').style.display = 'none';
+    document.getElementById('modal').style.display = 'flex';
+  });
 }
 
 function openEditModal(row) {
-  document.getElementById('modal-title').textContent = 'Edit Attendance';
-  document.getElementById('edit-id').value = row.id;
-  document.getElementById('f-date').value = row.date;
-  document.getElementById('f-time-in').value = row.time_in ? row.time_in.slice(0, 5) : '';
-  document.getElementById('f-time-out').value = row.time_out ? row.time_out.slice(0, 5) : '';
-  document.getElementById('f-notes').value = row.notes || '';
-  previewHours();
-  document.getElementById('modal').style.display = 'flex';
+  requireAuth(() => {
+    document.getElementById('modal-title').textContent = 'Edit Attendance';
+    document.getElementById('edit-id').value = row.id;
+    document.getElementById('f-date').value = row.date;
+    document.getElementById('f-time-in').value = row.time_in ? row.time_in.slice(0, 5) : '';
+    document.getElementById('f-time-out').value = row.time_out ? row.time_out.slice(0, 5) : '';
+    document.getElementById('f-notes').value = row.notes || '';
+    previewHours();
+    document.getElementById('modal').style.display = 'flex';
+  });
 }
 
 function closeModal() {
@@ -326,14 +331,16 @@ async function saveRecord() {
 }
 
 async function deleteRecord(id) {
-  if (!confirm('Delete this record?')) return;
-  const r = await fetch(`${TABLE}?id=eq.${id}`, {
-    method: 'DELETE',
-    headers: { ...HEADERS, 'Prefer': 'return=minimal' }
+  requireAuth(async () => {
+    if (!confirm('Delete this record?')) return;
+    const r = await fetch(`${TABLE}?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { ...HEADERS, 'Prefer': 'return=minimal' }
+    });
+    if (!r.ok) { showToast('Failed to delete.', 'error'); return; }
+    showToast('Record deleted.', 'info');
+    refresh();
   });
-  if (!r.ok) { showToast('Failed to delete.', 'error'); return; }
-  showToast('Record deleted.', 'info');
-  refresh();
 }
 
 function refresh() {
