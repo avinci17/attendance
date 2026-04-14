@@ -1,30 +1,13 @@
 const SUPABASE_URL = 'https://tmbgwgkwsccwbffcqrty.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtYmd3Z2t3c2Njd2JmZmNxcnR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMjgwMTcsImV4cCI6MjA5MTcwNDAxN30.2doKUlYFOmHGSggF3DG-o7YRJXBX6wvgKykCck3B2as';
-const HEADERS = {
-  'Content-Type': 'application/json',
-  'apikey': SUPABASE_KEY,
-  'Authorization': `Bearer ${SUPABASE_KEY}`
-};
-const TABLE = `${SUPABASE_URL}/rest/v1/attendance`;
 const OJT_REQUIRED_HOURS = 500;
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-function isAuthenticated() {
-  const expiry = sessionStorage.getItem('auth_expiry');
-  if (!expiry) return false;
-  if (Date.now() > parseInt(expiry)) {
-    sessionStorage.removeItem('auth_expiry');
-    return false;
-  }
-  return true;
-}
 
 async function requireAuth(callback) {
   const { data: { session } } = await sb.auth.getSession();
   if (session) { callback(); return; }
 
-  // Show login overlay
   const overlay = document.createElement('div');
   overlay.id = 'auth-overlay';
   overlay.style.cssText = `
@@ -157,9 +140,16 @@ function previewHours() {
   }
 }
 
+function round1(n) { return Math.round(n * 10) / 10; }
+function round2(n) { return Math.round(n * 100) / 100; }
+
 async function loadSummary() {
-  const r = await fetch(`${TABLE}?select=time_in,time_out,manual_hours&order=date.desc`, { headers: HEADERS });
-  const records = await r.json();
+  const { data: records, error } = await sb
+    .from('attendance')
+    .select('time_in, time_out, manual_hours')
+    .order('date', { ascending: false });
+
+  if (error) { console.error('loadSummary error:', error); return; }
 
   let total = 0, days = 0;
   for (const row of records) {
@@ -199,12 +189,13 @@ async function loadSummary() {
   document.getElementById('estimation-block').style.display = 'block';
 }
 
-function round1(n) { return Math.round(n * 10) / 10; }
-function round2(n) { return Math.round(n * 100) / 100; }
-
 async function loadRecords() {
-  const r = await fetch(`${TABLE}?select=*&order=date.desc`, { headers: HEADERS });
-  const records = await r.json();
+  const { data: records, error } = await sb
+    .from('attendance')
+    .select('*')
+    .order('date', { ascending: false });
+
+  if (error) { console.error('loadRecords error:', error); return; }
 
   const tbody = document.getElementById('records-body');
   const mcards = document.getElementById('mobile-records-body');
@@ -315,24 +306,17 @@ async function saveRecord() {
 
   const payload = { date, time_in: time_in + ':00', time_out: time_out + ':00', notes: notes || null, manual_hours: null };
 
-  let r;
+  let error;
   if (id) {
-    r = await fetch(`${TABLE}?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: { ...HEADERS, 'Prefer': 'return=minimal' },
-      body: JSON.stringify(payload)
-    });
+    const { error: err } = await sb.from('attendance').update(payload).eq('id', id);
+    error = err;
   } else {
-    r = await fetch(TABLE, {
-      method: 'POST',
-      headers: { ...HEADERS, 'Prefer': 'return=minimal' },
-      body: JSON.stringify(payload)
-    });
+    const { error: err } = await sb.from('attendance').insert(payload);
+    error = err;
   }
 
-  if (!r.ok) {
-    const err = await r.json();
-    const msg = err.message || err.details || 'Failed to save.';
+  if (error) {
+    const msg = error.message || 'Failed to save.';
     showToast(msg.includes('unique') ? 'A record for this date already exists.' : msg, 'error');
     return;
   }
@@ -345,11 +329,8 @@ async function saveRecord() {
 async function deleteRecord(id) {
   requireAuth(async () => {
     if (!confirm('Delete this record?')) return;
-    const r = await fetch(`${TABLE}?id=eq.${id}`, {
-      method: 'DELETE',
-      headers: { ...HEADERS, 'Prefer': 'return=minimal' }
-    });
-    if (!r.ok) { showToast('Failed to delete.', 'error'); return; }
+    const { error } = await sb.from('attendance').delete().eq('id', id);
+    if (error) { showToast('Failed to delete.', 'error'); return; }
     showToast('Record deleted.', 'info');
     refresh();
   });
