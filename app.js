@@ -214,7 +214,7 @@ async function loadRecords() {
       <td style="padding:12px 12px;color:#c4a090;" class="mono">${fmt12(row.time_in)}</td>
       <td style="padding:12px 12px;color:#c4a090;" class="mono">${fmt12(row.time_out)}</td>
       <td style="padding:12px 12px;font-weight:600;color:#7a9e8a;" class="mono">${fmtHours(h)}</td>
-      <td style="padding:12px 12px;color:rgba(196,160,144,0.6);">${row.notes || '—'}</td>
+      <td style="padding:12px 12px;color:rgba(196,160,144,0.6);">${(row.notes || '—').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</td>
       <td style="padding:12px 12px;">
         <div style="display:flex;gap:6px;">
           <button onclick='openEditModal(${JSON.stringify(row)})'
@@ -247,7 +247,7 @@ async function loadRecords() {
         </div>
         ${row.notes ? `<div style="flex:1;min-width:0;">
           <p style="font-size:11px;color:rgba(196,160,144,0.5);font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Notes</p>
-          <p style="font-size:13px;color:rgba(196,160,144,0.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${row.notes}</p>
+          <p style="font-size:13px;color:rgba(196,160,144,0.7);...">${row.notes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
         </div>` : ''}
       </div>
       <div style="display:flex;gap:8px;margin-top:4px;">
