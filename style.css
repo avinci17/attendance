@@ -1,15 +1,15 @@
 :root {
-  --dark: #1e1510;
-  --card: rgba(30, 21, 16, 0.72);
-  --card-light: rgba(245, 235, 225, 0.92);
-  --rose: #c47a7a;
-  --peach: #d4926a;
-  --sage: #7a9e8a;
-  --cream: #f5ebe1;
-  --text: #1e1510;
-  --muted: #7a6a5f;
-  --border: rgba(196, 122, 122, 0.25);
-  --green: #7a9e8a;
+  --dark: #0d1117;
+  --card: rgba(13, 17, 30, 0.75);
+  --card-light: rgba(220, 232, 255, 0.92);
+  --rose: #5b8cff;
+  --peach: #7ec8e3;
+  --sage: #63d4a0;
+  --cream: #e8f0ff;
+  --text: #0d1117;
+  --muted: #6b7a99;
+  --border: rgba(91, 140, 255, 0.25);
+  --green: #63d4a0;
 }
 
 * {
@@ -33,7 +33,7 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background: rgba(15, 8, 4, 0.62);
+  background: rgba(4, 8, 20, 0.68);
   backdrop-filter: blur(2px);
   z-index: 0;
 }
@@ -48,8 +48,8 @@ body::before {
 
 /* Cards */
 .glass-dark {
-  background: var(--card);
-  border: 1px solid rgba(196, 122, 122, 0.3);
+  background: rgba(13, 20, 45, 0.72);
+  border: 1px solid rgba(91, 140, 255, 0.22);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 16px;
@@ -57,7 +57,7 @@ body::before {
 
 .glass-light {
   background: var(--card-light);
-  border: 1px solid rgba(196, 122, 122, 0.2);
+  border: 1px solid rgba(91, 140, 255, 0.2);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
@@ -103,7 +103,7 @@ input[type="text"] {
 }
 
 .btn-primary:hover {
-  background: #b56a6a;
+  background: #4a7aee;
 }
 
 .btn-primary:active {
@@ -123,14 +123,14 @@ input[type="text"] {
 }
 
 .btn-outline:hover {
-  background: rgba(196, 122, 122, .1);
+  background: rgba(91, 140, 255, .1);
 }
 
 /* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 5, 2, 0.6);
+  background: rgba(4, 8, 20, 0.65);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -152,13 +152,13 @@ input[type="text"] {
 }
 
 .modal-box {
-  background: #2a1a12;
-  border: 1px solid rgba(196, 122, 122, 0.35);
+  background: #0d1628;
+  border: 1px solid rgba(91, 140, 255, 0.3);
   border-radius: 20px 20px 0 0;
   padding: 24px 20px 32px;
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
   max-height: 92vh;
   overflow-y: auto;
 }
@@ -166,7 +166,7 @@ input[type="text"] {
 .modal-handle {
   width: 40px;
   height: 4px;
-  background: rgba(196, 122, 122, 0.4);
+  background: rgba(91, 140, 255, 0.35);
   border-radius: 99px;
   margin: 0 auto 20px;
 }
@@ -179,7 +179,7 @@ input[type="text"] {
 
 .field-label {
   font-size: 13px;
-  color: #c4a090;
+  color: #8aaaf0;
   font-weight: 500;
   display: block;
   margin-bottom: 4px;
@@ -188,11 +188,11 @@ input[type="text"] {
 .field-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1.5px solid rgba(196, 122, 122, 0.35);
+  border: 1.5px solid rgba(91, 140, 255, 0.3);
   border-radius: 8px;
   font-size: 15px;
-  background: rgba(255, 255, 255, 0.07);
-  color: #f5ebe1;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8f0ff;
   font-family: 'DM Sans', sans-serif;
   transition: border-color .2s;
 }
@@ -202,7 +202,7 @@ input[type="text"] {
 }
 
 .field-input::placeholder {
-  color: rgba(196, 160, 144, 0.4);
+  color: rgba(138, 170, 240, 0.4);
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator,
@@ -249,31 +249,31 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   white-space: nowrap;
 }
 
-.day-mon { background: #2a3a4a; color: #7ab4d4; }
-.day-tue { background: #3a2e10; color: #d4b46a; }
-.day-wed { background: #1a2e22; color: #7a9e8a; }
-.day-thu { background: #2a1e3a; color: #a07ad4; }
-.day-fri { background: #3a1a1a; color: #c47a7a; }
-.day-sat { background: #3a2a14; color: #d4926a; }
-.day-sun { background: #2e1a24; color: #c47a9a; }
+.day-mon { background: #0e2040; color: #5b8cff; }
+.day-tue { background: #0e2030; color: #7ec8e3; }
+.day-wed { background: #0e2a1e; color: #63d4a0; }
+.day-thu { background: #1a1040; color: #a07ad4; }
+.day-fri { background: #1a0e2a; color: #c47aee; }
+.day-sat { background: #0e2535; color: #7ec8e3; }
+.day-sun { background: #1a1030; color: #8aaaf0; }
 
 /* Table */
 .record-row {
-  border-bottom: 1px solid rgba(196, 122, 122, 0.12);
+  border-bottom: 1px solid rgba(91, 140, 255, 0.1);
   transition: background .15s;
 }
 
 .record-row:hover {
-  background: rgba(196, 122, 122, 0.06);
+  background: rgba(91, 140, 255, 0.06);
 }
 
 /* Mobile cards */
 .record-card {
-  border: 1px solid rgba(196, 122, 122, 0.2);
+  border: 1px solid rgba(91, 140, 255, 0.18);
   border-radius: 12px;
   padding: 14px 16px;
   margin-bottom: 10px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   transition: background .15s;
 }
 
@@ -282,7 +282,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .record-card:hover {
-  background: rgba(196, 122, 122, 0.08);
+  background: rgba(91, 140, 255, 0.08);
 }
 
 .desktop-table {
