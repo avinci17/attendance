@@ -182,8 +182,6 @@ async function loadSummary() {
     return date.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
   }
 
-  document.getElementById('est-300').innerHTML =
-    `300 hrs — <span style="color:#d4926a;font-weight:500;">${estimateDate(300)}</span>`;
   document.getElementById('est-500').innerHTML =
     `500 hrs — <span style="color:#d4926a;font-weight:500;">${estimateDate(500)}</span>`;
   document.getElementById('estimation-block').style.display = 'block';
